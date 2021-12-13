@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IDErrorTDFunctions", "IDErrorTDFunctions\IDErrorTDFunctions.csproj", "{5DB333BA-3E6E-479D-B8DA-07E43953D9A7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5DB333BA-3E6E-479D-B8DA-07E43953D9A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5DB333BA-3E6E-479D-B8DA-07E43953D9A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5DB333BA-3E6E-479D-B8DA-07E43953D9A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5DB333BA-3E6E-479D-B8DA-07E43953D9A7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {15E464AB-0F5A-4828-9B64-EE1CC2B70997}
+	EndGlobalSection
+EndGlobal
