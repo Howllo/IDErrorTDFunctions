@@ -32,7 +32,7 @@ namespace IDErrorTDFunctions.Function
             //titleContext.EntityToken = args.EntityToken;
             var serverAPI = new PlayFab.PlayFabServerInstanceAPI(apiSettings, titleContext);
             var request = new PlayFab.ServerModels.GetUserInventoryRequest();
-            //request.PlayFabId = args;
+            request.PlayFabId = args;
             var results = await serverAPI.GetUserInventoryAsync(request);
 
             log.LogInformation("Currency: " + results.Result.VirtualCurrency["XP"] + "\n");

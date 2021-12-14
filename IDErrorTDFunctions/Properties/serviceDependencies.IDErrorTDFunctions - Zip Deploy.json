@@ -5,9 +5,15 @@
       "type": "storage.azure",
       "connectionId": "AzureWebJobsStorage"
     },
+    "secrets1": {
+      "secretStore": "AzureAppSettings",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.KeyVault/vaults/IDErrorTDFunctionsvault",
+      "type": "secrets.keyVault",
+      "connectionId": "VaultUri"
+    },
     "appInsights1": {
       "secretStore": "AzureAppSettings",
-      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/IDErrorTDFunction",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/microsoft.insights/components/IDErrorTDFunctions",
       "type": "appInsights.azure",
       "connectionId": "APPINSIGHTS_CONNECTIONSTRING"
     }

@@ -46,8 +46,8 @@ namespace IDErrorTDFunctions
                     privateKey = data.GetID;
 
                     //Encryption
-                    encryptedEmail = EncryptString(PlayerEmail, privateKey);
-                    encryptedPassword = EncryptString(PlayerPassword, privateKey);
+                    encryptedEmail = EncryptString(PlayerEmail, privateKey, log);
+                    encryptedPassword = EncryptString(PlayerPassword, privateKey, log);
                     stringReturn = "{\"GetPlayerAccountEmail\":\"" + encryptedEmail + "\",\"GetPlayerAccountPass\":\"" + encryptedPassword + "\"}";
                 }
                 else if (EncryptionOrDecryption == "Decryption")
@@ -66,99 +66,71 @@ namespace IDErrorTDFunctions
             {
                 if (EncryptionOrDecryption == "Encryption")
                 {
-                    PlayerEmail = data.GetPlayerAccountEmail;
+                    PlayerEmail = data.GetIncomingInfo;
                     privateKey = data.GetID;
-                    encryptedEmail = EncryptString(PlayerEmail, privateKey);
-                    stringReturn = "{\"GetPlayerAccountEmail\":\"" + encryptedEmail + "\"}";
+                    encryptedEmail = EncryptString(PlayerEmail, privateKey, log);
+                    stringReturn = "{\"GetIncomingInfo\":\"" + encryptedEmail + "\"}";
                 }
                 else if (EncryptionOrDecryption == "Decryption")
                 {
-                    encryptedEmail = data.GetPlayerAccountEmail;
+                    encryptedEmail = data.GetIncomingInfo;
                     privateKey = data.GetID;
                     PlayerEmail = DecryptString(encryptedEmail, privateKey);
-                    stringReturn = "{\"GetPlayerAccountEmail\":\"" + PlayerEmail + "\"}";
+                    stringReturn = "{\"GetIncomingInfo\":\"" + PlayerEmail + "\"}";
                 }
             }
             return stringReturn;
         }
 
-        public static string EncryptString(string EncryptThis, string PrivateKey)
+        public static string EncryptString(string plainText, string key, ILogger log)
         {
-            var saltStringBytes = Generate256bitsOfEntropy();
-            var ivStringBytes = Generate256bitsOfEntropy();
-            var plainTextBytes = Encoding.UTF8.GetBytes(EncryptThis);
-            using (var password = new Rfc2898DeriveBytes(PrivateKey, saltStringBytes, DerivationmIterations))
+            byte[] iv = new byte[16];
+            byte[] array;
+
+            using (Aes aes = Aes.Create())
             {
-                var keyBytes = password.GetBytes(Keysize / 8);
-                using (var symmetricKey = new RijndaelManaged())
+                aes.Key = Encoding.UTF8.GetBytes(key);
+                aes.IV = iv;
+
+                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+
+                using (MemoryStream memoryStream = new MemoryStream())
                 {
-                    symmetricKey.BlockSize = 256;
-                    symmetricKey.Mode = CipherMode.CBC;
-                    symmetricKey.Padding = PaddingMode.PKCS7;
-                    using (var encryptor = symmetricKey.CreateEncryptor(keyBytes, ivStringBytes))
+                    using (CryptoStream cryptoStream = new CryptoStream((Stream)memoryStream, encryptor, CryptoStreamMode.Write))
                     {
-                        using (var memeoryStream = new MemoryStream())
+                        using (StreamWriter streamWriter = new StreamWriter((Stream)cryptoStream))
                         {
-                            using (var cryptoStream = new CryptoStream(memeoryStream, encryptor, CryptoStreamMode.Write))
-                            {
-                                cryptoStream.Write(plainTextBytes, 0, plainTextBytes.Length);
-                                cryptoStream.FlushFinalBlock();
-                                var cipherTextBytes = saltStringBytes;
-                                cipherTextBytes = cipherTextBytes.Concat(ivStringBytes).ToArray();
-                                cipherTextBytes = cipherTextBytes.Concat(memeoryStream.ToArray()).ToArray();
-                                memeoryStream.Close();
-                                cryptoStream.Close();
-                                return Convert.ToBase64String(cipherTextBytes);
-                            }
+                            streamWriter.Write(plainText);
+                        }
+                        array = memoryStream.ToArray();
+                    }
+                }
+            }
+            return Convert.ToBase64String(array);
+        }
+
+        public static string DecryptString(string cipherText, string key)
+        {
+            byte[] iv = new byte[16];
+            byte[] buffer = Convert.FromBase64String(cipherText);
+
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = Encoding.UTF8.GetBytes(key);
+                aes.IV = iv;
+                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
+
+                using (MemoryStream memoryStream = new MemoryStream(buffer))
+                {
+                    using (CryptoStream cryptoStream = new CryptoStream((Stream)memoryStream, decryptor, CryptoStreamMode.Read))
+                    {
+                        using (StreamReader streamReader = new StreamReader((Stream)cryptoStream))
+                        {
+                            return streamReader.ReadToEnd();
                         }
                     }
                 }
             }
-        }
-
-        public static string DecryptString(string cipherText, string PrivateKey)
-        {
-            // Get the complete stream of bytes that represent:
-            // [32 bytes of Salt] + [32 bytes of IV] + [n bytes of CipherText]
-            var cipherTextBytesWithSaltAndIv = Convert.FromBase64String(cipherText);
-            var saltStringBytes = cipherTextBytesWithSaltAndIv.Take(Keysize / 8).ToArray();
-            var ivStringBytes = cipherTextBytesWithSaltAndIv.Skip(Keysize / 8).Take(Keysize / 8).ToArray();
-            var cipherTextBytes = cipherTextBytesWithSaltAndIv.Skip((Keysize / 8) * 2).Take(cipherTextBytesWithSaltAndIv.Length - ((Keysize / 8) * 2)).ToArray();
-
-            using (var password = new Rfc2898DeriveBytes(PrivateKey, saltStringBytes, DerivationmIterations))
-            {
-                var keyBytes = password.GetBytes(Keysize / 8);
-                using (var symmetricKey = new RijndaelManaged())
-                {
-                    symmetricKey.BlockSize = 256;
-                    symmetricKey.Mode = CipherMode.CBC;
-                    symmetricKey.Padding = PaddingMode.PKCS7;
-                    using (var decryptor = symmetricKey.CreateDecryptor(keyBytes, ivStringBytes))
-                    {
-                        using (var memoryStream = new MemoryStream(cipherTextBytes))
-                        {
-                            using (var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
-                            {
-                                var plainTextBytes = new byte[cipherTextBytes.Length];
-                                var decryptedByteCount = cryptoStream.Read(plainTextBytes, 0, plainTextBytes.Length);
-                                memoryStream.Close();
-                                cryptoStream.Close();
-                                return Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private static byte[] Generate256bitsOfEntropy()
-        {
-            var randomBytes = new byte[32];
-            using (var rngCsp = new RNGCryptoServiceProvider())
-            {
-                rngCsp.GetBytes(randomBytes);
-            }
-            return randomBytes;
         }
     }
 }
