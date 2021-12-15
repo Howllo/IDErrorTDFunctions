@@ -35,10 +35,6 @@ namespace IDErrorTDFunctions.Function
             request.PlayFabId = args;
             var results = await serverAPI.GetUserInventoryAsync(request);
 
-            log.LogInformation("Currency: " + results.Result.VirtualCurrency["XP"] + "\n");
-            log.LogInformation("Title: " + apiSettings.TitleId + " Dev Secret: " + apiSettings.DeveloperSecretKey + "\n");
-            log.LogInformation("TitleContext: " + titleContext);
-
             //Important Variables.
             //   Max Level in Game     Current Level                     Get Player Total Experience
             int maxLevelAllowed = 60, currentLevel = 1, totalPlayerEXP = results.Result.VirtualCurrency["XP"];

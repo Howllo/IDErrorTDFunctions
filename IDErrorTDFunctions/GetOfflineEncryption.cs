@@ -7,41 +7,42 @@ using PlayFab.Plugins.CloudScript;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
+using Microsoft.AspNetCore.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace IDErrorTDFunctions
 {
-    public static class EncryptAccount
+    public static class GetOfflineEncryption
     {
-        //Encryption
-        private const int Keysize = 256;
-        private const int DerivationmIterations = 1000;
-
-        [FunctionName("EncryptAccount")]
+        [FunctionName("GetOfflineEncryption")]
         public static async Task<dynamic> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestMessage req,
+            [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            var context = await FunctionContext<dynamic>.Create(req);
-            var args = context.FunctionArgument;
+            log.LogInformation("Enter the Encryption Function!");
+            //Check if online or offline.
+            var jsonString = req.ToString();
+            log.LogInformation("Json String: " + jsonString);
+            dynamic data = JObject.Parse(jsonString);
+            log.LogInformation("Passed dynamic data. ");
+            bool offline;
+            offline = Convert.ToBoolean(data.Offline);
+            log.LogInformation("Pass the Dynamic Json.");
+
             string PlayerEmail = "", PlayerPassword = "", encryptedEmail = "", encryptedPassword = "";
             string stringReturn = "", EncryptionOrDecryption = "", privateKey = "", SingleOrDouble = "";
             string publicKey = "", decryptedPublic = "";
             string OfflineKeyForAllUsers = Environment.GetEnvironmentVariable("GET_PRIVATE_KEY_FOR_ALL_USER", EnvironmentVariableTarget.Process);
-            bool offline;
+            log.LogInformation("Passed the variables");
 
-            //Convert Dynamic to String - Parse the string.
-            var jsonString = JsonConvert.SerializeObject(args);
-            dynamic data = JObject.Parse(jsonString);
             SingleOrDouble = data.SingleOrDouble;
             EncryptionOrDecryption = data.EncryptionOrDecryption;
             publicKey = data.GetPublic;
             privateKey = data.GetID;
-            offline = Convert.ToBoolean(data.Offline);
             log.LogInformation(offline.ToString());
+            log.LogInformation("Data Processing Passed");
 
             if (SingleOrDouble == "Double")
             {
@@ -74,8 +75,8 @@ namespace IDErrorTDFunctions
                     PlayerEmail = DecryptString(encryptedEmail, privateKey);
                     PlayerPassword = DecryptString(encryptedPassword, privateKey);
                     stringReturn = "{\"GetPlayerAccountEmail\":\"" + PlayerEmail + "\",\"GetPlayerAccountPass\":\"" + PlayerPassword + "\"}";
-                } 
-                else if(EncryptionOrDecryption == "Decryption" && offline)
+                }
+                else if (EncryptionOrDecryption == "Decryption" && offline)
                 {
                     log.LogInformation("Entered double decyption offline.");
                     encryptedEmail = data.GetPlayerAccountEmail;
