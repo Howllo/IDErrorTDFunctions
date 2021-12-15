@@ -22,7 +22,6 @@ namespace IDErrorTDFunctions
             var name = req.QueryString;
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            log.LogInformation("Json String: " + requestBody);
 
             string PlayerEmail = "", PlayerPassword = "", encryptedEmail = "", encryptedPassword = "";
             string stringReturn = "", SingleOrDouble = "", publicKey = "", decryptedPublicKey = "";
