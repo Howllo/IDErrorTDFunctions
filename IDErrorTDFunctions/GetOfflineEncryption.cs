@@ -1,16 +1,14 @@
+using System;
+using System.IO;
+using Microsoft.AspNetCore.Http;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using PlayFab.Plugins.CloudScript;
-using System;
-using System.IO;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace IDErrorTDFunctions
 {
@@ -23,7 +21,7 @@ namespace IDErrorTDFunctions
         {
             log.LogInformation("Enter the Encryption Function!");
             //Check if online or offline.
-            var jsonString = req.ToString();
+            var jsonString = JsonConvert.SerializeObject(req);
             log.LogInformation("Json String: " + jsonString);
             dynamic data = JObject.Parse(jsonString);
             log.LogInformation("Passed dynamic data. ");
@@ -32,13 +30,12 @@ namespace IDErrorTDFunctions
             log.LogInformation("Pass the Dynamic Json.");
 
             string PlayerEmail = "", PlayerPassword = "", encryptedEmail = "", encryptedPassword = "";
-            string stringReturn = "", EncryptionOrDecryption = "", privateKey = "", SingleOrDouble = "";
+            string stringReturn = "", privateKey = "", SingleOrDouble = "";
             string publicKey = "", decryptedPublic = "";
             string OfflineKeyForAllUsers = Environment.GetEnvironmentVariable("GET_PRIVATE_KEY_FOR_ALL_USER", EnvironmentVariableTarget.Process);
             log.LogInformation("Passed the variables");
 
             SingleOrDouble = data.SingleOrDouble;
-            EncryptionOrDecryption = data.EncryptionOrDecryption;
             publicKey = data.GetPublic;
             privateKey = data.GetID;
             log.LogInformation(offline.ToString());
@@ -46,74 +43,23 @@ namespace IDErrorTDFunctions
 
             if (SingleOrDouble == "Double")
             {
-                if (EncryptionOrDecryption == "Encryption")
-                {
-                    log.LogInformation("Entered double Encyption");
-                    PlayerEmail = data.GetPlayerAccountEmail;
-                    PlayerPassword = data.GetPlayerAccountPass;
-                    log.LogInformation($"Player Email {PlayerEmail}");
-                    log.LogInformation($"Current private key is {privateKey}");
-                    log.LogInformation($"Current Gamename is {OfflineKeyForAllUsers}");
+                log.LogInformation("Entered double decyption offline.");
+                encryptedEmail = data.GetPlayerAccountEmail;
+                encryptedPassword = data.GetPlayerAccountPass;
 
-                    //Encryption
-                    encryptedEmail = EncryptString(PlayerEmail, privateKey);
-                    encryptedPassword = EncryptString(PlayerPassword, privateKey);
-                    log.LogInformation($"Normal Encrpytion are successful.");
-                    publicKey = EncryptString(privateKey, OfflineKeyForAllUsers);
-                    log.LogInformation("Public Key encryption works");
-                    stringReturn = "{\"GetPlayerAccountEmail\":\"" + encryptedEmail + "\",\"GetPlayerAccountPass\":\"" + encryptedPassword +
-                                   "\",\"GetPublic\":\"" + publicKey + "\"}";
-                }
-                else if (EncryptionOrDecryption == "Decryption" && !offline)
-                {
-                    log.LogInformation("Entered double Decyption online.");
-                    decryptedPublic = DecryptString(publicKey, OfflineKeyForAllUsers);
-                    encryptedEmail = data.GetPlayerAccountEmail;
-                    encryptedPassword = data.GetPlayerAccountPass;
-
-                    //Decryption
-                    PlayerEmail = DecryptString(encryptedEmail, privateKey);
-                    PlayerPassword = DecryptString(encryptedPassword, privateKey);
-                    stringReturn = "{\"GetPlayerAccountEmail\":\"" + PlayerEmail + "\",\"GetPlayerAccountPass\":\"" + PlayerPassword + "\"}";
-                }
-                else if (EncryptionOrDecryption == "Decryption" && offline)
-                {
-                    log.LogInformation("Entered double decyption offline.");
-                    encryptedEmail = data.GetPlayerAccountEmail;
-                    encryptedPassword = data.GetPlayerAccountPass;
-
-                    //Decryption
-                    PlayerEmail = DecryptString(encryptedEmail, decryptedPublic);
-                    PlayerPassword = DecryptString(encryptedPassword, decryptedPublic);
-                    stringReturn = "{\"GetPlayerAccountEmail\":\"" + PlayerEmail + "\",\"GetPlayerAccountPass\":\"" + PlayerPassword + "\"}";
-                }
+                //Decryption
+                PlayerEmail = DecryptString(encryptedEmail, decryptedPublic);
+                PlayerPassword = DecryptString(encryptedPassword, decryptedPublic);
+                stringReturn = "{\"GetPlayerAccountEmail\":\"" + PlayerEmail + "\",\"GetPlayerAccountPass\":\"" + PlayerPassword + "\"}";
             }
             else if (SingleOrDouble == "Single")
             {
-                if (EncryptionOrDecryption == "Encryption")
-                {
-                    log.LogInformation("Entered single Encyption");
-                    PlayerEmail = data.GetIncomingInfo;
-                    encryptedEmail = EncryptString(PlayerEmail, privateKey);
-                    stringReturn = "{\"GetIncomingInfo\":\"" + encryptedEmail + "\"}";
-                }
-                else if (EncryptionOrDecryption == "Decryption" && !offline)
-                {
-                    log.LogInformation("Entered single decyption online.");
-                    encryptedEmail = data.GetIncomingInfo;
+                log.LogInformation("Entered single decyption offline.");
+                decryptedPublic = DecryptString(publicKey, OfflineKeyForAllUsers);
+                encryptedEmail = data.GetIncomingInfo;
 
-                    PlayerEmail = DecryptString(encryptedEmail, privateKey);
-                    stringReturn = "{\"GetIncomingInfo\":\"" + PlayerEmail + "\"}";
-                }
-                else if (EncryptionOrDecryption == "Decryption" && !offline)
-                {
-                    log.LogInformation("Entered single decyption offline.");
-                    decryptedPublic = DecryptString(publicKey, OfflineKeyForAllUsers);
-                    encryptedEmail = data.GetIncomingInfo;
-
-                    PlayerEmail = DecryptString(encryptedEmail, decryptedPublic);
-                    stringReturn = "{\"GetIncomingInfo\":\"" + PlayerEmail + "\"}";
-                }
+                PlayerEmail = DecryptString(encryptedEmail, decryptedPublic);
+                stringReturn = "{\"GetIncomingInfo\":\"" + PlayerEmail + "\"}";
             }
             return stringReturn;
         }
