@@ -15,10 +15,6 @@ namespace IDErrorTDFunctions
 {
     public static class EncryptAccount
     {
-        //Encryption
-        private const int Keysize = 256;
-        private const int DerivationmIterations = 1000;
-
         [FunctionName("EncryptAccount")]
         public static async Task<dynamic> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestMessage req,
