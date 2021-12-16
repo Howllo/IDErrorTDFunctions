@@ -28,7 +28,9 @@ namespace IDErrorTDFunctions
             string OfflineKeyForAllUsers = Environment.GetEnvironmentVariable("GET_PRIVATE_KEY_FOR_ALL_USER", EnvironmentVariableTarget.Process);
             SingleOrDouble = data.SingleOrDouble;
             publicKey = data.GetPublic;
+            log.LogInformation("Public Key is: " + publicKey);
             decryptedPublicKey = DecryptString(publicKey, OfflineKeyForAllUsers);
+
 
             if (SingleOrDouble == "Double")
             {
