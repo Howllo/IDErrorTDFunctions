@@ -23,8 +23,8 @@ namespace IDErrorTDFunctions
             var context = await FunctionContext<dynamic>.Create(req);
             var args = context.FunctionArgument;
             string PlayerEmail = "", PlayerPassword = "", encryptedEmail = "", encryptedPassword = "";
-            string stringReturn = "", EncryptionOrDecryption = "", privateKey = "", SingleOrDouble = "";
-            string publicKey = "";
+            string stringReturn = "", EncryptionOrDecryption = "", privateKey = "", SingleOrDouble = "", publicKey = "";
+            bool GetPublic = false;
             string OfflineKeyForAllUsers = Environment.GetEnvironmentVariable("GET_PRIVATE_KEY_FOR_ALL_USER", EnvironmentVariableTarget.Process);
 
             //Convert Dynamic to String - Parse the string.
@@ -33,12 +33,12 @@ namespace IDErrorTDFunctions
             SingleOrDouble = data.SingleOrDouble;
             EncryptionOrDecryption = data.EncryptionOrDecryption;
             privateKey = data.GetID;
+            GetPublic = data.GetPublic;
 
             if (SingleOrDouble == "Double")
             {
                 if (EncryptionOrDecryption == "Encryption")
                 {
-                    log.LogInformation("Entered double Encryption.");
                     PlayerEmail = data.GetPlayerAccountEmail;
                     PlayerPassword = data.GetPlayerAccountPass;
 
@@ -51,7 +51,6 @@ namespace IDErrorTDFunctions
                 }
                 else if (EncryptionOrDecryption == "Decryption")
                 {
-                    log.LogInformation("Entered double Decyption.");
                     encryptedEmail = data.GetPlayerAccountEmail;
                     encryptedPassword = data.GetPlayerAccountPass;
 
@@ -63,18 +62,28 @@ namespace IDErrorTDFunctions
             }
             else if (SingleOrDouble == "Single")
             {
-                if (EncryptionOrDecryption == "Encryption")
+                if (EncryptionOrDecryption == "Encryption" && !GetPublic)
                 {
-                    log.LogInformation("Entered single Encyption.");
                     PlayerEmail = data.GetIncomingInfo;
+
+                    //Encryptions
                     encryptedEmail = EncryptString(PlayerEmail, privateKey);
                     stringReturn = "{\"GetIncomingInfo\":\"" + encryptedEmail + "\"}";
                 }
+                else if (EncryptionOrDecryption == "Encryption" && GetPublic)
+                {
+                    PlayerEmail = data.GetIncomingInfo;
+
+                    //Encryption
+                    encryptedEmail = EncryptString(PlayerEmail, privateKey);
+                    publicKey = EncryptString(privateKey, OfflineKeyForAllUsers);
+                    stringReturn = "{\"GetIncomingInfo\":\"" + encryptedEmail + "\",\"GetPublic\":\"" + publicKey + "\"}";
+                }
                 else if (EncryptionOrDecryption == "Decryption")
                 {
-                    log.LogInformation("Entered single decyption online.");
                     encryptedEmail = data.GetIncomingInfo;
 
+                    //Decryption
                     PlayerEmail = DecryptString(encryptedEmail, privateKey);
                     stringReturn = "{\"GetIncomingInfo\":\"" + PlayerEmail + "\"}";
                 }
