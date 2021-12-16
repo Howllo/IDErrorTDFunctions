@@ -24,7 +24,7 @@ namespace IDErrorTDFunctions
             var args = context.FunctionArgument;
             string PlayerEmail = "", PlayerPassword = "", encryptedEmail = "", encryptedPassword = "";
             string stringReturn = "", EncryptionOrDecryption = "", privateKey = "", SingleOrDouble = "";
-            string publicKey = "", decryptedPublic = "";
+            string publicKey = "";
             string OfflineKeyForAllUsers = Environment.GetEnvironmentVariable("GET_PRIVATE_KEY_FOR_ALL_USER", EnvironmentVariableTarget.Process);
 
             //Convert Dynamic to String - Parse the string.
@@ -38,26 +38,20 @@ namespace IDErrorTDFunctions
             {
                 if (EncryptionOrDecryption == "Encryption")
                 {
-                    log.LogInformation("Entered double Encyption");
+                    log.LogInformation("Entered double Encryption.");
                     PlayerEmail = data.GetPlayerAccountEmail;
                     PlayerPassword = data.GetPlayerAccountPass;
-                    log.LogInformation($"Player Email {PlayerEmail}");
-                    log.LogInformation($"Current private key is {privateKey}");
-                    log.LogInformation($"Current Gamename is {OfflineKeyForAllUsers}");
 
                     //Encryption
                     encryptedEmail = EncryptString(PlayerEmail, privateKey);
                     encryptedPassword = EncryptString(PlayerPassword, privateKey);
-                    log.LogInformation($"Normal Encrpytion are successful.");
                     publicKey = EncryptString(privateKey, OfflineKeyForAllUsers);
-                    log.LogInformation("Public Key encryption works");
                     stringReturn = "{\"GetPlayerAccountEmail\":\"" + encryptedEmail + "\",\"GetPlayerAccountPass\":\"" + encryptedPassword +
                                    "\",\"GetPublic\":\"" + publicKey + "\"}";
                 }
                 else if (EncryptionOrDecryption == "Decryption")
                 {
-                    log.LogInformation("Entered double Decyption online.");
-                    decryptedPublic = DecryptString(publicKey, OfflineKeyForAllUsers);
+                    log.LogInformation("Entered double Decyption.");
                     encryptedEmail = data.GetPlayerAccountEmail;
                     encryptedPassword = data.GetPlayerAccountPass;
 
@@ -71,7 +65,7 @@ namespace IDErrorTDFunctions
             {
                 if (EncryptionOrDecryption == "Encryption")
                 {
-                    log.LogInformation("Entered single Encyption");
+                    log.LogInformation("Entered single Encyption.");
                     PlayerEmail = data.GetIncomingInfo;
                     encryptedEmail = EncryptString(PlayerEmail, privateKey);
                     stringReturn = "{\"GetIncomingInfo\":\"" + encryptedEmail + "\"}";
