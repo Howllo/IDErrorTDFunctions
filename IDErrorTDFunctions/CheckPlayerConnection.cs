@@ -23,7 +23,6 @@ namespace IDErrorTDFunctions
             string str = data?.Ping;
             if (str == "Ping")
                 str = "{\"Ping\":\"Pong\"}";
-
             return new OkObjectResult(str);
         }
     }
