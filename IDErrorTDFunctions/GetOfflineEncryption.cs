@@ -31,7 +31,6 @@ namespace IDErrorTDFunctions
             log.LogInformation("Public Key is: " + publicKey);
             decryptedPublicKey = DecryptString(publicKey, OfflineKeyForAllUsers);
 
-
             if (SingleOrDouble == "Double")
             {
                 encryptedEmail = data.GetPlayerAccountEmail;
