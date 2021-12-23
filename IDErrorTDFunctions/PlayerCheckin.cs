@@ -1,5 +1,6 @@
 using System;
 using System.Net.Http;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -16,6 +17,7 @@ namespace IDErrorTDFunctions
     {
         static string DevSecretKey = Environment.GetEnvironmentVariable("PLAYFAB_DEV_SECRET_KEY", EnvironmentVariableTarget.Process);
         static string GetTitleInfo = Environment.GetEnvironmentVariable("PLAYFAB_TITLE_ID", EnvironmentVariableTarget.Process), JSONString = "";
+        static string PlayerID = "";
 
         [FunctionName("PlayerCheckin")]
         public static async Task<dynamic> Run(
@@ -28,78 +30,117 @@ namespace IDErrorTDFunctions
             JSONString = JsonConvert.SerializeObject(args);
             dynamic data = JObject.Parse(JSONString);
             string CONTEXT_TRACKER = data.WhatTypeOfTracker;
+            PlayerID = context.CurrentPlayerId;
 
+            //Create a link to Playfabs
             var apiSettings = new PlayFabApiSettings()
             {
                 TitleId = GetTitleInfo,
                 DeveloperSecretKey = DevSecretKey
             };
             var serverAPI = new PlayFabServerInstanceAPI(apiSettings);
+
+            //Get User Data
             var request = new GetUserDataRequest();
             request.PlayFabId = context.CurrentPlayerId;
             var results = await serverAPI.GetUserReadOnlyDataAsync(request);
 
-            if (!results.Result.Data.ContainsKey(CONTEXT_TRACKER))
+            //Get Title Data
+            var requestTitleData = new GetTitleDataRequest();
+            var resultsTitleData = await serverAPI.GetTitleDataAsync(requestTitleData);
+            var WeeklyInfo = resultsTitleData.Result.Data["ConsecutiveLoginTable"];
+
+            //Check User Data for a key.
+            if (results.Result.Data.ContainsKey(CONTEXT_TRACKER))
             {
                 JSONString = JsonConvert.SerializeObject(results.Result.Data[CONTEXT_TRACKER].Value);
                 data = JObject.Parse(JSONString);
+            } else if(!results.Result.Data.ContainsKey(CONTEXT_TRACKER))
+            {
+                data.CurrenStreak = 0;
+                data.LoginBefore = DateTime.UtcNow.AddDays(1);
             }
 
             if (data.DailyOrMonthly == "Daily")
             {
-                int compareTimes = DateTime.Compare(data.GetUTCTime, data.LoginBefore);
-                if (compareTimes < 0) //Early 
+                if(CONTEXT_TRACKER.Contains("Consecutive"))
                 {
-                    //Earlier than loginbefore
-                    setJsonData.CurrentStreak = data.CurrentStreak++;
-                    GrantItems(data.Reward, data.RewardAmount, log);
-                    setJsonData.GetUTCTime = DateTime.UtcNow;
-                    setJsonData.LoginBefore = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day + 2,
-                                                           DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
-                }
-                else if (compareTimes > 0) //Late | Reset
+                    int compareTimes = DateTime.Compare(DateTime.UtcNow, data.LoginBefore);
+                    //Early | Advance
+                    if (compareTimes < 0)
+                    {
+                        setJsonData.CurrentStreak = data.CurrentStreak++;
+                        if (data.CurrentStreak > data.HighestStreak)
+                        {
+                            data.HighestStreak = data.CurrentStreak;
+                            GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
+                        }
+                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                        setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
+                    } //Late | Reset
+                    else if (compareTimes > 0)
+                    {
+                        setJsonData.CurrentStreak = 0;
+                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                        setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
+                    }
+                } else if (CONTEXT_TRACKER.Contains("Weekly"))
                 {
-                    setJsonData.CurrentStreak = 1;
-                    setJsonData.GetUTCTime = DateTime.UtcNow;
-                    setJsonData.LoginBefore = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day + 2,
-                                                           DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
+                    int compareTimes = DateTime.Compare(data.LoginAfter, DateTime.Today);
+                    if (compareTimes > 0) //If greater than 24 hours.
+                    {
+                        setJsonData.CurrentStreak = data.CurrentStreak++;
+                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                        GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
+                    }
                 }
             }
-            if(data.DailyOrMonthly == "Monthly")
+            else if(data.DailyOrMonthly == "Monthly")
             {
-                int compareTimes = DateTime.Compare(data.GetUTCTime, DateTime.Today);
+                int compareTimes = DateTime.Compare(data.LoginAfter, DateTime.Today);
                 if(compareTimes > 0) //If greater than 24 hours.
                 {
-                    setJsonData.GetUTCTime = DateTime.UtcNow;
-                    setJsonData.LoginBefore = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.Today.Day + 1,
-                                                           DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
+                    setJsonData.CurrentStreak = data.CurrentStreak++;
+                    setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                    GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
                 }
             }
-            string SetCurrentInfo = JsonConvert.SerializeObject(setJsonData);
 
+            //Convert Object to string to be upload to players context.
+            string SetCurrentInfo = JsonConvert.SerializeObject(setJsonData);
             var requestUpdate = new UpdateUserDataRequest();
             requestUpdate.PlayFabId = context.CurrentPlayerId;
             requestUpdate.Data[CONTEXT_TRACKER] = SetCurrentInfo;
             var resultsUpdate = await serverAPI.UpdateUserDataAsync(requestUpdate);
-            
-            return 0;
+
+            return data.CurrentStreak;
         }
 
-        public static void GrantItems(string items, int count, ILogger log)
+        public static async void GrantItems(string items, int count, PlayFabServerInstanceAPI serverAPI, ILogger log)
         {
             log.LogInformation("Granting items: " + items);
-            
+
+            List<string> parse = new List<string>();
+            for (int i = 0; i < count; i++)
+                parse[i] = items;
+            GrantItemsToUserRequest request = new GrantItemsToUserRequest();
+            request.PlayFabId = PlayerID;
+            request.ItemIds = parse;
+            request.Annotation = "Granting items for checkin streak.";
+            var results = await serverAPI.GrantItemsToUserAsync(request);
+            log.LogInformation("Successfully Granted: " + results.Result.ItemGrantResults.ToString() + " to " + PlayerID);
+
+            return;
         }
     }
 
     //Out-going JSON
     public class SetJsonData
     { 
-        public DateTime GetUTCTime { get; set; }
+        public DateTime LoginAfter { get; set; }
         public DateTime LoginBefore { get; set; }
-        public string CheckTracker { get; set; }
         public int CurrentStreak { get; set; }
-        public string DailyOrMonthly { get; set; }
+        public int highStreak { get; set; }
         public string CurrentWeek { get; set; }
         public string currentLevel { get; set; }
     }
