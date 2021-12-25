@@ -72,8 +72,9 @@ namespace IDErrorTDFunctions
                         setJsonData.CurrentStreak = data.CurrentStreak++;
                         if (data.CurrentStreak > data.HighestStreak)
                         {
-                            data.HighestStreak = data.CurrentStreak;
+                            setJsonData.HighestStreak = data.CurrentStreak;
                             GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
+                            setJsonData.RewardGranted = true;
                         }
                         setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
                         setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
@@ -90,8 +91,10 @@ namespace IDErrorTDFunctions
                     if (compareTimes > 0) //If greater than 24 hours.
                     {
                         setJsonData.CurrentStreak = data.CurrentStreak++;
+                        setJsonData.HighestStreak = data.CurrentStreak;
                         setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
                         GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
+                        setJsonData.RewardGranted = true;
                     }
                 }
             }
@@ -103,6 +106,7 @@ namespace IDErrorTDFunctions
                     setJsonData.CurrentStreak = data.CurrentStreak++;
                     setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
                     GrantItems(data.Reward, data.RewardAmount, serverAPI, log);
+                    setJsonData.RewardGranted = true;
                 }
             }
 
@@ -113,7 +117,7 @@ namespace IDErrorTDFunctions
             requestUpdate.Data[CONTEXT_TRACKER] = SetCurrentInfo;
             var resultsUpdate = await serverAPI.UpdateUserDataAsync(requestUpdate);
 
-            return data.CurrentStreak;
+            return SetCurrentInfo;
         }
 
         public static async void GrantItems(string items, int count, PlayFabServerInstanceAPI serverAPI, ILogger log)
@@ -139,9 +143,10 @@ namespace IDErrorTDFunctions
     { 
         public DateTime LoginAfter { get; set; }
         public DateTime LoginBefore { get; set; }
-        public int CurrentStreak { get; set; }
-        public int highStreak { get; set; }
+        public uint CurrentStreak { get; set; }
+        public uint HighestStreak { get; set; }
         public string CurrentWeek { get; set; }
         public string currentLevel { get; set; }
+        public bool RewardGranted { get; set; }
     }
 }
