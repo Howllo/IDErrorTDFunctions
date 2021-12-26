@@ -34,7 +34,8 @@ namespace IDErrorTDFunctions
             //Get Context
             PlayerContextJson = JsonConvert.SerializeObject(args);
             dynamic playerData = JObject.Parse(PlayerContextJson);
-            string PLAYER_CONTEXT_TRACKER = playerData.PlayerTrackerName, TITLE_CONTEXT_TRACKER = playerData.WhatTypeOfTracker;
+            string PLAYER_CONTEXT_TRACKER = playerData.PlayerTrackerName, TITLE_CONTEXT_TRACKER = playerData.TitleDataTrackerName;
+            string WeeklyOrMonthly = playerData.WeeklyOrMonthly;
 
             //Create a link to Playfab
             var apiSettings = new PlayFabApiSettings()
@@ -82,7 +83,7 @@ namespace IDErrorTDFunctions
             string Reward = "";
 
             //Check and Send Rewards
-            if (playerData.DailyOrMonthly == "Daily")
+            if (WeeklyOrMonthly == "Daily")
             {
                 if(TITLE_CONTEXT_TRACKER.Contains("Consecutive"))
                 {
@@ -108,7 +109,7 @@ namespace IDErrorTDFunctions
                         setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
                         setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
                     }
-                } else if (TITLE_CONTEXT_TRACKER.Contains("Weekly"))
+                } else if (TITLE_CONTEXT_TRACKER.Contains("Event"))
                 {
                     int compareTimes = DateTime.Compare(playerData.LoginAfter, DateTime.Today);
                     if (compareTimes > 0) //If greater than 24 hours.
@@ -121,7 +122,7 @@ namespace IDErrorTDFunctions
                     }
                 }
             }
-            else if(playerData.DailyOrMonthly == "Monthly")
+            else if(WeeklyOrMonthly == "Monthly")
             {
                 int compareTimes = DateTime.Compare(playerData.LoginAfter, DateTime.Today);
                 if(compareTimes > 0) //If greater than 24 hours.
@@ -169,25 +170,25 @@ namespace IDErrorTDFunctions
             switch (CurrentStreak)
             {
                 case 0:
-                    reward = titleData.Day1.Reward;
+                    reward = titleData["Day1"]["Reward"];
                     break;
                 case 1:
-                    reward = titleData.Day2.Reward;
+                    reward = titleData["Day2"]["Reward"];
                     break;
                 case 2:
-                    reward = titleData.Day3.Reward;
+                    reward = titleData["Day3"]["Reward"];
                     break;
                 case 3:
-                    reward = titleData.Day4.Reward;
+                    reward = titleData["Day4"]["Reward"];
                     break;
                 case 4:
-                    reward = titleData.Day5.Reward;
+                    reward = titleData["Day5"]["Reward"];
                     break;
                 case 5:
-                    reward = titleData.Day6.Reward;
+                    reward = titleData["Day6"]["Reward"];
                     break;
                 case 6:
-                    reward = titleData.Day7.Reward;
+                    reward = titleData["Day7"]["Reward"];
                     break;
                 case 7:
                     reward = titleData.Day8.Reward;
