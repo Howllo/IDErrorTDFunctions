@@ -197,7 +197,7 @@ namespace IDErrorTDFunctions
             GrantItemsToUserRequest request = new GrantItemsToUserRequest()
             {
                 PlayFabId = PlayerID,
-                CatalogVersion = titleData[(int)CurrentStreak].Catagory,
+                CatalogVersion = titleData[(int)CurrentStreak].Catalog,
                 ItemIds = new List<string>()
                 {
                     items
@@ -225,6 +225,6 @@ namespace IDErrorTDFunctions
     {
         public long MinStreak { get; set; }
         public string Reward { get; set; }
-        public string Catagory { get; set; }
+        public string Catalog { get; set; }
     }
 }
