@@ -191,24 +191,20 @@ namespace IDErrorTDFunctions
 
         public static async void GrantItems(string items, PlayFabServerInstanceAPI serverAPI, ILogger log)
         {
-            bool hasGranted = false;
-            log.LogInformation("Granting items: " + items + " to player " + PlayerID);
+            log.LogInformation($"Granting {items} to player {PlayerID}.");
 
-            if (!hasGranted)
+            GrantItemsToUserRequest request = new GrantItemsToUserRequest()
             {
-                GrantItemsToUserRequest request = new GrantItemsToUserRequest()
+                PlayFabId = PlayerID,
+                CatalogVersion = CatalogReturn(CurrentStreak, log),
+                ItemIds = new List<string>()
                 {
-                    PlayFabId = PlayerID,
-                    CatalogVersion = CatalogReturn(CurrentStreak, log),
-                    ItemIds = new List<string>()
-                    {
-                        items
-                    },
-                    Annotation = "Granting items for checkin streak.",
-                };
-                hasGranted = true;
-                var results = await serverAPI.GrantItemsToUserAsync(request);
-            }
+                    items
+                },
+            };
+
+            var results = await serverAPI.GrantItemsToUserAsync(request);
+            log.LogInformation($"Granted {items} to player {PlayerID} successful.");
             return;
         }
 
