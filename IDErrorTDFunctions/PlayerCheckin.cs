@@ -21,7 +21,8 @@ namespace IDErrorTDFunctions
         static uint CurrentStreak = 0, HighestStreak = 0;
         static DateTime LoginBefore, LoginAfter;
         static bool isFirstTime = false;
-        static dynamic titleData, TitleContextJson, PlayerContextJson;
+        static dynamic TitleContextJson, PlayerContextJson;
+        static List<GetTitleData> titleData = new List<GetTitleData>();
 
         [FunctionName("PlayerCheckin")]
         public static async Task<dynamic> Run(
@@ -65,8 +66,8 @@ namespace IDErrorTDFunctions
             //Check if Title Data Exist
             if (resultsTitleData.Result.Data.ContainsKey(TITLE_CONTEXT_TRACKER))
             {
-                TitleContextJson = JsonConvert.DeserializeObject(resultsTitleData.Result.Data[TITLE_CONTEXT_TRACKER]);
-                titleData = JObject.Parse(TitleContextJson);
+                titleData = JsonConvert.DeserializeObject<List<GetTitleData>>(resultsTitleData.Result.Data[TITLE_CONTEXT_TRACKER]);
+                //titleData = JObject.Parse(TitleContextJson);
             }
             else
             {
@@ -118,7 +119,7 @@ namespace IDErrorTDFunctions
                             setJsonData.CurrentStreak = CurrentStreak++;
                         else if (isFirstTime)
                         {
-                            Reward = RewardReturn(CurrentStreak, log);
+                            Reward = titleData[(int)CurrentStreak].Reward;
                             GrantItems(Reward, serverAPI, log);
                             setJsonData.GrantedItem = Reward;
                             setJsonData.HighestStreak = CurrentStreak;
@@ -126,7 +127,7 @@ namespace IDErrorTDFunctions
 
                         if (CurrentStreak > HighestStreak)
                         {
-                            Reward = RewardReturn(CurrentStreak, log);
+                            Reward = titleData[(int)CurrentStreak].Reward;
                             GrantItems(Reward, serverAPI, log);
                             setJsonData.GrantedItem = Reward;
                             setJsonData.HighestStreak = CurrentStreak;
@@ -148,7 +149,7 @@ namespace IDErrorTDFunctions
                     {
                         if (!isFirstTime)
                             setJsonData.CurrentStreak = CurrentStreak++;
-                        Reward = RewardReturn(CurrentStreak, log);
+                        Reward = titleData[(int)CurrentStreak].Reward;
                         GrantItems(Reward, serverAPI, log);
                         setJsonData.GrantedItem = Reward;
                         setJsonData.HighestStreak = CurrentStreak;
@@ -164,7 +165,7 @@ namespace IDErrorTDFunctions
                     if (!isFirstTime)
                         setJsonData.CurrentStreak = CurrentStreak++;
                     setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
-                    Reward = RewardReturn(CurrentStreak, log);
+                    Reward = titleData[(int)CurrentStreak].Reward;
                     GrantItems(Reward, serverAPI, log);
                     setJsonData.GrantedItem = Reward;
                 }
@@ -196,7 +197,7 @@ namespace IDErrorTDFunctions
             GrantItemsToUserRequest request = new GrantItemsToUserRequest()
             {
                 PlayFabId = PlayerID,
-                CatalogVersion = CatalogReturn(CurrentStreak, log),
+                CatalogVersion = titleData[(int)CurrentStreak].Catagory,
                 ItemIds = new List<string>()
                 {
                     items
@@ -206,26 +207,6 @@ namespace IDErrorTDFunctions
             var results = await serverAPI.GrantItemsToUserAsync(request);
             log.LogInformation($"Granted {items} to player {PlayerID} successful.");
             return;
-        }
-
-        //Get reward based on CurrentStreak.
-        private static string RewardReturn(uint CurrentStreak, ILogger log)
-        {
-            string reward = "";
-
-            reward = titleData.Day[CurrentStreak].Reward;
-            
-            return reward;
-        }
-
-        //Get catalog based on CurrentStreak.
-        private static string CatalogReturn(uint CurrentStreak, ILogger log)
-        {
-            string catalog = "";
-
-            catalog = titleData.Day[CurrentStreak].Catalog;
-
-            return catalog;
         }
     }
 
@@ -238,5 +219,12 @@ namespace IDErrorTDFunctions
         public uint CurrentStreak { get; set; }
         public uint HighestStreak { get; set; }
         public string GrantedItem { get; set; }
+    }
+
+    public class GetTitleData
+    {
+        public long MinStreak { get; set; }
+        public string Reward { get; set; }
+        public string Catagory { get; set; }
     }
 }
