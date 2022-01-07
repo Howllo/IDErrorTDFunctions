@@ -111,42 +111,47 @@ namespace IDErrorTDFunctions
             {
                 if (TITLE_CONTEXT_TRACKER.Contains("Consecutive"))
                 {
-                    int compareTimes = DateTime.Compare(DateTime.UtcNow, LoginBefore);
-                    //Early | Advance
-                    if (compareTimes < 0)
+                    int compareTimes = DateTime.Compare(DateTime.Today, LoginAfter);
+                    if (compareTimes >= 0) //After | Advance
                     {
-                        if (!isFirstTime)
-                            setJsonData.CurrentStreak = CurrentStreak++;
-                        else if (isFirstTime)
+                        int compareTimes2 = DateTime.Compare(DateTime.Today, LoginBefore);
+                        if (compareTimes2 < 0) //Early | Advance
                         {
-                            Reward = titleData[(int)CurrentStreak].Reward;
-                            GrantItems(Reward, serverAPI, log);
-                            setJsonData.GrantedItem = Reward;
-                            setJsonData.HighestStreak = CurrentStreak;
-                        }
-
-                        if (CurrentStreak > HighestStreak)
+                            //First time check.
+                            if (!isFirstTime)
+                                setJsonData.CurrentStreak = CurrentStreak++;
+                            else if (isFirstTime)
+                            {
+                                Reward = titleData[(int)CurrentStreak].Reward;
+                                GrantItems(Reward, serverAPI, log);
+                                setJsonData.GrantedItem = Reward;
+                                setJsonData.HighestStreak = CurrentStreak;
+                            }
+                            if (CurrentStreak > HighestStreak)
+                            {
+                                Reward = titleData[(int)CurrentStreak].Reward;
+                                GrantItems(Reward, serverAPI, log);
+                                setJsonData.GrantedItem = Reward;
+                                setJsonData.HighestStreak = CurrentStreak;
+                            }
+                            DateTime day = DateTime.Now.AddDays(2);
+                            setJsonData.LoginAfter = DateTime.Today.AddDays(1).AddHours(8).AddMinutes(30);
+                            setJsonData.LoginBefore = DateTime.Today.AddDays(2);
+                        }//Late | Reset
+                        else if (compareTimes > 0)
                         {
-                            Reward = titleData[(int)CurrentStreak].Reward;
-                            GrantItems(Reward, serverAPI, log);
-                            setJsonData.GrantedItem = Reward;
-                            setJsonData.HighestStreak = CurrentStreak;
+                            setJsonData.CurrentStreak = 0;
+                            setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1).AddHours(8).AddMinutes(30);
+                            setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
                         }
-                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
-                        setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
-                    } //Late | Reset
-                    else if (compareTimes > 0)
-                    {
-                        setJsonData.CurrentStreak = 0;
-                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
-                        setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
-                    }
+                    } 
                 }
                 else if (TITLE_CONTEXT_TRACKER.Contains("Event"))
                 {
                     int compareTimes = DateTime.Compare(LoginAfter, DateTime.Today);
                     if (compareTimes > 0) //If greater than 24 hours.
                     {
+                        //First time Check.
                         if (!isFirstTime)
                             setJsonData.CurrentStreak = CurrentStreak++;
                         Reward = titleData[(int)CurrentStreak].Reward;
@@ -164,7 +169,7 @@ namespace IDErrorTDFunctions
                 {
                     if (!isFirstTime)
                         setJsonData.CurrentStreak = CurrentStreak++;
-                    setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                    setJsonData.LoginAfter = DateTime.Today.AddDays(1).AddHours(8).AddMinutes(30);
                     Reward = titleData[(int)CurrentStreak].Reward;
                     GrantItems(Reward, serverAPI, log);
                     setJsonData.GrantedItem = Reward;
