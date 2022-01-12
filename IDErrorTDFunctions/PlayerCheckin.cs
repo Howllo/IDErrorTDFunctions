@@ -40,6 +40,8 @@ namespace IDErrorTDFunctions
             string WeeklyOrMonthly = playerData.WeeklyOrMonthly;
             PlayerID = playerData.PlayerAccountID;
 
+            log.LogInformation($"The incoming name to data is: {PLAYER_CONTEXT_TRACKER}");
+
             //Create a link to Playfab
             var apiSettings = new PlayFabApiSettings()
             {
@@ -67,22 +69,23 @@ namespace IDErrorTDFunctions
             if (resultsTitleData.Result.Data.ContainsKey(TITLE_CONTEXT_TRACKER))
             {
                 titleData = JsonConvert.DeserializeObject<List<GetTitleData>>(resultsTitleData.Result.Data[TITLE_CONTEXT_TRACKER]);
-                //titleData = JObject.Parse(TitleContextJson);
             }
             else
             {
-                log.LogInformation($"There is current no type {TITLE_CONTEXT_TRACKER} active right now.");
+                log.LogError($"Cannot find {TITLE_CONTEXT_TRACKER} should be fixed immediately.");
                 return null;
             }
         
+            //Check Player Data.
             if (results.Result.Data.ContainsKey(PLAYER_CONTEXT_TRACKER))
             {
-                log.LogInformation("Enter not first time");
+                log.LogInformation("User - Not first time");
                 PlayerContextJson = JsonConvert.DeserializeObject(results.Result.Data[PLAYER_CONTEXT_TRACKER].ToString());
                 playerData = JObject.Parse(PlayerContextString);
             }
             else if(!results.Result.Data.ContainsKey(PLAYER_CONTEXT_TRACKER))
             {
+                log.LogInformation($"{PlayerID} first time.");
                 isFirstTime = true;
             }
 
@@ -112,14 +115,19 @@ namespace IDErrorTDFunctions
                 if (TITLE_CONTEXT_TRACKER.Contains("Consecutive"))
                 {
                     int compareTimes = DateTime.Compare(DateTime.Today, LoginAfter);
-                    if (compareTimes >= 0) //After | Advance
+                    if (compareTimes > 0) //After | Advance
                     {
                         int compareTimes2 = DateTime.Compare(DateTime.Today, LoginBefore);
                         if (compareTimes2 < 0) //Early | Advance
                         {
+                            log.LogInformation($"isFirstTime bool is: {isFirstTime}.");
+
                             //First time check.
                             if (!isFirstTime)
+                            {
                                 setJsonData.CurrentStreak = CurrentStreak++;
+                                log.LogInformation($"Current streak for player {PlayerID} is {CurrentStreak}.");
+                            } 
                             else if (isFirstTime)
                             {
                                 Reward = titleData[(int)CurrentStreak].Reward;
@@ -127,6 +135,7 @@ namespace IDErrorTDFunctions
                                 setJsonData.GrantedItem = Reward;
                                 setJsonData.HighestStreak = CurrentStreak;
                             }
+
                             if (CurrentStreak > HighestStreak)
                             {
                                 Reward = titleData[(int)CurrentStreak].Reward;
@@ -134,15 +143,15 @@ namespace IDErrorTDFunctions
                                 setJsonData.GrantedItem = Reward;
                                 setJsonData.HighestStreak = CurrentStreak;
                             }
-                            DateTime day = DateTime.Now.AddDays(2);
+
                             setJsonData.LoginAfter = DateTime.Today.AddDays(1).AddHours(8).AddMinutes(30);
-                            setJsonData.LoginBefore = DateTime.Today.AddDays(2);
+                            setJsonData.LoginBefore = DateTime.Today.AddDays(2).AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute);
                         }//Late | Reset
                         else if (compareTimes > 0)
                         {
                             setJsonData.CurrentStreak = 0;
                             setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1).AddHours(8).AddMinutes(30);
-                            setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2);
+                            setJsonData.LoginBefore = DateTime.UtcNow.AddDays(2).AddHours(DateTime.Now.Hour).AddMinutes(DateTime.Now.Minute);
                         }
                     } 
                 }
@@ -153,12 +162,15 @@ namespace IDErrorTDFunctions
                     {
                         //First time Check.
                         if (!isFirstTime)
+                        {
                             setJsonData.CurrentStreak = CurrentStreak++;
+                        }
+
                         Reward = titleData[(int)CurrentStreak].Reward;
                         GrantItems(Reward, serverAPI, log);
                         setJsonData.GrantedItem = Reward;
                         setJsonData.HighestStreak = CurrentStreak;
-                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1);
+                        setJsonData.LoginAfter = DateTime.UtcNow.AddDays(1).AddHours(8).AddMinutes(30);
                     }
                 }
             }
@@ -168,7 +180,10 @@ namespace IDErrorTDFunctions
                 if (compareTimes > 0) //If greater than 24 hours.
                 {
                     if (!isFirstTime)
+                    {
                         setJsonData.CurrentStreak = CurrentStreak++;
+                    }
+
                     setJsonData.LoginAfter = DateTime.Today.AddDays(1).AddHours(8).AddMinutes(30);
                     Reward = titleData[(int)CurrentStreak].Reward;
                     GrantItems(Reward, serverAPI, log);
@@ -176,7 +191,9 @@ namespace IDErrorTDFunctions
                 }
             }
             else
+            {
                 setJsonData.GrantedItem = "";
+            }
 
             //Convert Object to JSon string to be upload to players context.
             string PlayerData = JsonConvert.SerializeObject(setJsonData);
