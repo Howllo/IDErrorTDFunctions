@@ -1,16 +1,20 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
-using System.Net.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using PlayFab.Plugins.CloudScript;
+using PlayFab;
 
-namespace IDErrorTDFunctions.Function
+namespace IDErrorTDFunctions
 {
-    public static class GetPlayerAcccountLevel
+    public static class CharacterExperienceLevel
     {
-        [FunctionName("GetPlayerAcccountLevel")]
+        [FunctionName("CharacterExperienceLevel")]
         public static async Task<dynamic> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestMessage req,
             ILogger log)
@@ -19,29 +23,29 @@ namespace IDErrorTDFunctions.Function
             var args = context.FunctionArgument;
 
             //Get Title Infromation, and Get Virtual Currency.
-            var apiSettings = new PlayFab.PlayFabApiSettings()
+            var apiSettings = new PlayFabApiSettings()
             {
                 TitleId = Environment.GetEnvironmentVariable("PLAYFAB_TITLE_ID", EnvironmentVariableTarget.Process),
                 DeveloperSecretKey = Environment.GetEnvironmentVariable("PLAYFAB_DEV_SECRET_KEY", EnvironmentVariableTarget.Process)
             };
-            PlayFab.PlayFabAuthenticationContext titleContext = new PlayFab.PlayFabAuthenticationContext();
-            var serverAPI = new PlayFab.PlayFabServerInstanceAPI(apiSettings, titleContext);
+            PlayFabAuthenticationContext titleContext = new PlayFabAuthenticationContext();
+            var serverAPI = new PlayFabServerInstanceAPI(apiSettings, titleContext);
             var request = new PlayFab.ServerModels.GetUserInventoryRequest();
             request.PlayFabId = args;
             var results = await serverAPI.GetUserInventoryAsync(request);
 
             //Important Variables.
             //   Max Level in Game     Current Level                     Get Player Total Experience
-            int maxLevelAllowed = 60, currentLevel = 1, totalPlayerEXP = results.Result.VirtualCurrency["XP"];
+            int maxLevelAllowed = 50, currentLevel = 1, totalPlayerEXP = results.Result.VirtualCurrency["XP"];
             int[] experienceRequirePerLevel = new int[maxLevelAllowed];
-            int multiples = 5, lastExp = 0, totalEXP = 0, percentageOfLast = 0;
+            int multiples = 1, lastExp = 0, totalEXP = 0, percentageOfLast = 0;
             string responsesMessage = "";
 
             //Assign required experience to array elements.
             for (int i = 0; i < maxLevelAllowed; i++)
             {
                 percentageOfLast = (lastExp * multiples) / 100;
-                percentageOfLast += 300;
+                percentageOfLast += 250;
                 totalEXP = lastExp + percentageOfLast;
                 experienceRequirePerLevel[i] = totalEXP.RoundUpFunction();
                 lastExp = totalEXP;
